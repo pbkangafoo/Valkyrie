@@ -36,7 +36,7 @@ Finding interesting files and checking whether you can read them:
 
 ## Exploit database
 
-the exploit database is currently quite limited and only contains 5 entries. In the next versions, the database will be extended.
+the exploit database is currently quite limited and only contains 8 entries. In the next versions, the database will be extended.
 
 ## Screenshot
 
