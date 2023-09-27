@@ -38,11 +38,31 @@ import json
 
 binpaths = ["/usr/bin","/usr/sbin","/bin","/sbin"]
 
-intfiles = ["/etc/passwd","/etc/shadow","/etc/group","/etc/sudoers"]
+intfiles = ["/etc/passwd","/etc/shadow","/etc/group","/etc/sudoers","/etc/issue","/etc/motd","/etc/resolv.conf","/etc/crontab"]
 
 #database for vulnerable kernels, perhaps extern file in future?
 datadb = '''
 [
+    {
+        "name" : "Dirty Pipe",
+        "description" : "Linux Kernel 5.8 < 5.16.11 - Local Privilege Escalation (DirtyPipe)",
+        "cve" : "2022-0847",
+        "details" : "https://dirtypipe.cm4all.com/",
+        "download" : "https://packetstormsecurity.com/files/download/166229/write_anything.c",
+        "language" : "c",
+        "minver" : "5.8",
+        "maxver" : "5.16.11"
+    },
+    {
+        "name" : "Netfilter Local Privilege Escalation",
+        "description" : "Linux Kernel 2.6.19 < 5.9 - Netfilter Local Privilege Escalation",
+        "cve" : "2021-22555",
+        "details" : "https://nvd.nist.gov/vuln/detail/CVE-2021-22555",
+        "download" : "https://www.exploit-db.com/raw/50135",
+        "language" : "c",
+        "minver" : " 2.6.19",
+        "maxver" : "5.8.0"
+    },
     {
         "name" : "PTRACE_TRACEME local root",
         "description" : "Linux Kernel 4.10 < 5.1.17 - PTRACE_TRACEME pkexec Local Privilege Escalation",
@@ -92,6 +112,16 @@ datadb = '''
         "language" : "c",
         "minver" : "2.6.0",
         "maxver" : "4.14.6"
+    },
+    {
+        "name" : "AF_PACKET Race Condition Privilege Escalation",
+        "description" : "Linux Kernel 4.4.0-21 < 4.4.0-51 (Ubuntu 14.04/16.04 x64)",
+        "cve" : "2016-8655",
+        "details" : "https://nvd.nist.gov/vuln/detail/CVE-2016-8655",
+        "download" : "https://packetstormsecurity.com/files/download/140063/chocobo_root.c",
+        "language" : "c",
+        "minver" : "4.4.0",
+        "maxver" : "4.4.0"
     }
 ]'''
 
@@ -215,12 +245,12 @@ def check_paths_for_suid():
     check_paths_for_suid() -> no return, prints directly
 
     """
-	for binpath in binpaths:
-		for root, dirs, files in os.walk(binpath):
-			for file in files:
-				sfile = os.path.join(root,file)
-				if is_suid(sfile):
-					print("[~] suid: "+sfile)
+    for binpath in binpaths:
+        for root, dirs, files in os.walk(binpath):
+            for file in files:
+                sfile = os.path.join(root,file)
+                if is_suid(sfile):
+                    print("[~] suid: "+sfile)
 				#else: for debug purposes
 					#print("not suid: "+sfile)
                     
