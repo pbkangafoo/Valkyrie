@@ -10,7 +10,7 @@
       |  ||  |  \_____/|___|___|_______|__|\__| |___| |___|__|_______|_______|
       `._||_.'
    
-		VALKYRIE - 0.1
+		VALKYRIE - 0.2
 		
 		Written by Peter Bartels
 		
@@ -25,6 +25,14 @@
         Database will be extended.
         Future functionality will be added.
 
+        Version 0.2:
+            + added more exploits to db
+            + scan for writeable directories
+            + added more interesting files to check for read permission
+            
+        Version 0.1:
+            + initial release
+
 
 """
 
@@ -38,7 +46,14 @@ import json
 
 binpaths = ["/usr/bin","/usr/sbin","/bin","/sbin"]
 
-intfiles = ["/etc/passwd","/etc/shadow","/etc/group","/etc/sudoers","/etc/issue","/etc/motd","/etc/resolv.conf","/etc/crontab"]
+intfiles = ["/etc/passwd",
+            "/etc/shadow",
+            "/etc/group",
+            "/etc/sudoers",
+            "/etc/issue",
+            "/etc/motd",
+            "/etc/resolv.conf",
+            "/etc/crontab"]
 
 #database for vulnerable kernels, perhaps extern file in future?
 datadb = '''
@@ -161,7 +176,17 @@ def download_file(url):
     """
     
 
+def fix_directory_path(directory):
+    """
 
+    fix_directory_path(string) -> string
+
+    checks whether the last character is a slash and adds it when missing
+
+    """
+    if directory[-1] != os.path.sep:
+        directory += os.path.sep
+    return directory
 
 
 def get_kernel_version():
@@ -227,6 +252,33 @@ def check_for_vuln(myversion,mydb):
             print("[~] Download: "+item['download'])
             #print(" -- "+get_filename(item['download']))
 
+
+def is_directory_writable(directory):
+    """
+
+    is_directory_writeable(string) -> boolean
+
+    function checks whether there are permissions to write files there
+
+    """
+    return os.access(directory, os.W_OK)
+
+
+def scan_writable_directories(root_directory):
+    """
+
+    scan_writeable_directories(string) -> no return, print directly
+
+    Scan all subdirectories of a given directory and check if they are writable.
+
+    """
+    for dirpath, dirnames, filenames in os.walk(root_directory):
+        for dirname in dirnames:
+            full_dir_path = os.path.join(dirpath, dirname)
+            if is_directory_writable(full_dir_path):
+                print("[~] writeable: "+full_dir_path)
+
+
 def is_suid(checkfile):
 	""" checks whether a file has suid/sgid flag, minimum value is 4
 
@@ -279,10 +331,11 @@ def infoheader():
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser("%prog [options] arg1 arg2")
-    parser.add_argument("-d", "--detect", dest="detect",default=False, action="store_true",help="automatically gets the kernel version")
-    parser.add_argument("-m", "--manual", dest="manual",default="0.0.0",help="specify the kernel version e.g. 2.6.18")
+    parser.add_argument("-d", "--detect", dest="detect",default=False, action="store_true",help="automatically gets the kernel version and checks for exploits")
+    parser.add_argument("-m", "--manual", dest="manual",default="0.0.0",help="specify the kernel version e.g. 2.6.18 and check for exploits")
     parser.add_argument("-s", "--suid",dest="suidfile",default=False, action="store_true",help="find suid binary files in default bin dirs")
     parser.add_argument("-r", "--read",dest="readint",default=False, action="store_true",help="find interesting readable files")
+    parser.add_argument("-w", "--write", dest="wdir",default="/",help="specify the root directory to scan for writeable directories")
     options = parser.parse_args()
     if len(sys.argv) < 2:
         infoheader()
@@ -292,6 +345,7 @@ if __name__=="__main__":
         detect = options.detect
         kernel = options.manual
         sfile = options.suidfile
+        rdir = options.wdir
         dbase = json.loads(datadb)
         infoheader()
         print("[~] Exploits in DB: "+str(len(dbase)))
@@ -308,3 +362,7 @@ if __name__=="__main__":
         if options.readint:
             print("\n[~] Scanning for interesting readable files..\n")
             check_files_reading(intfiles)
+        if rdir:
+            print("\n[~] Scanning for writeable directories..")
+            print("[~] Rootdir: "+rdir+"\n")
+            scan_writable_directories(fix_directory_path(rdir))
