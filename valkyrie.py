@@ -10,7 +10,7 @@
       |  ||  |  \_____/|___|___|_______|__|\__| |___| |___|__|_______|_______|
       `._||_.'
    
-		VALKYRIE - 0.2
+		VALKYRIE - 0.3
 		
 		Written by Peter Bartels
 		
@@ -24,6 +24,10 @@
         Initial pre-release, some functionality is still missing.
         Database will be extended.
         Future functionality will be added.
+        
+        Version 0.3:
+            + scans for installed tools and versions, suggests local exploits for
+            + minor fixes
 
         Version 0.2:
             + added more exploits to db
@@ -39,10 +43,10 @@
 import sys
 import argparse
 import os
-import pwd
-import grp
 import platform
 import json
+import re
+import subprocess
 
 binpaths = ["/usr/bin","/usr/sbin","/bin","/sbin"]
 
@@ -54,6 +58,45 @@ intfiles = ["/etc/passwd",
             "/etc/motd",
             "/etc/resolv.conf",
             "/etc/crontab"]
+
+bintools = ["sudo","screen"]
+
+tooldb = '''
+[
+    {
+        "program" : "screen",
+        "name" : "GNU screen privilege escalation",
+        "description" : "GNU screen v4.9.0 - Privilege Escalation (Arch / FreeBSD)",
+        "cve" : "2023-24626",
+        "details" : "https://nvd.nist.gov/vuln/detail/CVE-2023-24626",
+        "download" : "https://www.exploit-db.com/raw/51252",
+        "language" : "python",
+        "minver" : "4.9.0",
+        "maxver" : "4.9.0"
+    },
+    {
+        "program" : "screen",
+        "name" : "GNU screen privilege escalation",
+        "description" : "GNU screen v4.5.0 - Privilege Escalation",
+        "cve" : "none",
+        "details" : "https://www.exploit-db.com/exploits/41154",
+        "download" : "https://www.exploit-db.com/raw/41154",
+        "language" : "c",
+        "minver" : "4.5.0",
+        "maxver" : "4.5.0"
+    },
+    {
+        "program" : "sudo",
+        "name" : "sudo privilege escalation",
+        "description" : "sudo 1.8.0 to 1.9.12p1 - Privilege Escalation",
+        "cve" : "2023-22809",
+        "details" : "https://nvd.nist.gov/vuln/detail/CVE-2023-22809",
+        "download" : "https://www.exploit-db.com/raw/51217",
+        "language" : "python",
+        "minver" : "1.8.0",
+        "maxver" : "1.9.12"
+    }
+]'''
 
 #database for vulnerable kernels, perhaps extern file in future?
 datadb = '''
@@ -221,7 +264,6 @@ def version_to_tuple(version):
     return tuple(splitted)
 
 
-
 def is_vulnerable(myversion,minversion,maxversion):
     """
 
@@ -235,6 +277,24 @@ def is_vulnerable(myversion,minversion,maxversion):
     else:
         return False
 
+
+def check_for_vuln_tool(program,myversion,mydb):
+    """
+
+    check_for_vuln_tool(string,tuple,json) -> no return, just output
+
+    Function checks the given program and its version against the database looking for potential exploits
+    
+    """
+    for item in mydb:
+        #print (item['program'])
+        if (program == item['program']):
+            if is_vulnerable(myversion,version_to_tuple(item['minver']),version_to_tuple(item['maxver'])):
+                print("\n[~] Name: "+item['name']+" (CVE: "+item['cve']+")")
+                print("[~] Description: "+item['description'])
+                print("[~] Details: "+item['details'])
+                print("[~] Download: "+item['download']+"\n")
+                #print(" -- "+get_filename(item['download']))
 
 def check_for_vuln(myversion,mydb):
     """
@@ -252,6 +312,39 @@ def check_for_vuln(myversion,mydb):
             print("[~] Download: "+item['download'])
             #print(" -- "+get_filename(item['download']))
 
+
+def get_installed_program_version(program_name):
+    """
+
+    get_installed_program_version(string) -> string
+
+    executes a given program and returns the version number of it
+
+    """
+    try:
+        # Run a shell command to get the version of the program
+        version_info = subprocess.check_output([program_name, '--version'], stderr=subprocess.STDOUT, text=True)
+        
+        # Use regular expressions to extract the version number
+        version_match = re.search(r'(\d+\.\d+(\.\d+)?)', version_info)
+        
+        if version_match:
+            return version_match.group(1)
+        else:
+            return "Version not found"
+    except subprocess.CalledProcessError as e:
+        # Handle the case when the program doesn't exist or --version is not supported
+        return f"Error: {e.returncode}\n{e.output}"
+    except FileNotFoundError:
+        # Handle the case when the program is not found
+        return f"Error: {program_name} not found"
+
+
+def scan_for_local(proglist,dbtool):
+    for item in proglist:
+        version = get_installed_program_version(item)
+        print("Version of "+item+": "+version)
+        check_for_vuln_tool(item,version_to_tuple(version),dbtool)
 
 def is_directory_writable(directory):
     """
@@ -330,12 +423,13 @@ def infoheader():
 
 
 if __name__=="__main__":
-    parser = argparse.ArgumentParser("%prog [options] arg1 arg2")
+    parser = argparse.ArgumentParser(prog="valkyrie.py",usage="%(prog)s [options] arg1 arg2")
     parser.add_argument("-d", "--detect", dest="detect",default=False, action="store_true",help="automatically gets the kernel version and checks for exploits")
     parser.add_argument("-m", "--manual", dest="manual",default="0.0.0",help="specify the kernel version e.g. 2.6.18 and check for exploits")
+    parser.add_argument("-l", "--local", dest="lsploit",default=False, action="store_true",help="automatically gets the version of installed tools and checks for exploits")
     parser.add_argument("-s", "--suid",dest="suidfile",default=False, action="store_true",help="find suid binary files in default bin dirs")
     parser.add_argument("-r", "--read",dest="readint",default=False, action="store_true",help="find interesting readable files")
-    parser.add_argument("-w", "--write", dest="wdir",default="/",help="specify the root directory to scan for writeable directories")
+    parser.add_argument("-w", "--write", dest="wdir",default="",help="specify the root directory to scan for writeable directories")
     options = parser.parse_args()
     if len(sys.argv) < 2:
         infoheader()
@@ -344,11 +438,14 @@ if __name__=="__main__":
     else:
         detect = options.detect
         kernel = options.manual
+        ldetect = options.lsploit
         sfile = options.suidfile
         rdir = options.wdir
+        tbase = json.loads(tooldb)
         dbase = json.loads(datadb)
         infoheader()
-        print("[~] Exploits in DB: "+str(len(dbase)))
+        print("[~] Kernel Exploits in DB: "+str(len(dbase)))
+        print("[~] Local Exploits in DB: "+str(len(tbase)))
         if options.detect:
             detected_kernel = get_kernel_version()
             print("[~] Kernel version found: "+detected_kernel)
@@ -356,13 +453,16 @@ if __name__=="__main__":
         elif kernel != "0.0.0":
             print("[~] Kernel version given: "+kernel)
             check_for_vuln(version_to_tuple(kernel),dbase)
+        if options.lsploit:
+            print("\n[~] Scanning for local exploits among installed tools..\n")
+            scan_for_local(bintools,tbase)
         if options.suidfile:
             print("\n[~] Scanning for suid binaries..\n")
             check_paths_for_suid()
         if options.readint:
             print("\n[~] Scanning for interesting readable files..\n")
             check_files_reading(intfiles)
-        if rdir:
+        if options.wdir:
             print("\n[~] Scanning for writeable directories..")
             print("[~] Rootdir: "+rdir+"\n")
             scan_writable_directories(fix_directory_path(rdir))
