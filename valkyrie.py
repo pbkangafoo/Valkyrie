@@ -10,7 +10,7 @@
       |  ||  |  \_____/|___|___|_______|__|\__| |___| |___|__|_______|_______|
       `._||_.'
    
-		VALKYRIE - 0.3
+		VALKYRIE - 0.4
 		
 		Written by Peter Bartels
 		
@@ -24,6 +24,9 @@
         Initial pre-release, some functionality is still missing.
         Database will be extended.
         Future functionality will be added.
+        
+        Version 0.4:
+            + scans binaries in binary paths for capabilities
         
         Version 0.3:
             + scans for installed tools and versions, suggests local exploits for
@@ -47,6 +50,7 @@ import platform
 import json
 import re
 import subprocess
+
 
 binpaths = ["/usr/bin","/usr/sbin","/bin","/sbin"]
 
@@ -400,9 +404,48 @@ def check_paths_for_suid():
 					#print("not suid: "+sfile)
                     
 def check_files_reading(readlist):
+    """
+
+    check_files_reading(list) -> no return, direct print
+
+    function processes a list of files and returns whether they are readable
+
+    """
     for readfile in readlist:
         if os.access(readfile, os.R_OK):
             print("[~] Readable: "+readfile)
+
+
+def get_capabilities(binary_path):
+    """
+
+    get_capabilities(string) -> string
+
+    function executes getcap and returns capabilities
+
+    """
+    try:
+        result = subprocess.run(['getcap', binary_path], capture_output=True, text=True, check=True)
+        capabilities = result.stdout.strip()
+        return capabilities
+    except subprocess.CalledProcessError:
+        return f"Error: Could not get capabilities for {binary_path}"
+
+
+def check_paths_for_caps():
+    """
+
+    check_paths_for_caps() -> no return, prints directly
+
+    """
+    for binpath in binpaths:
+        for root, dirs, files in os.walk(binpath):
+            for file in files:
+                sfile = os.path.join(root,file)
+                capabilities = get_capabilities(sfile)
+                if capabilities:
+                    print(f"Capabilities for {sfile}:\n{capabilities}\n")
+
 
 def infoheader():
     """
@@ -428,6 +471,7 @@ if __name__=="__main__":
     parser.add_argument("-m", "--manual", dest="manual",default="0.0.0",help="specify the kernel version e.g. 2.6.18 and check for exploits")
     parser.add_argument("-l", "--local", dest="lsploit",default=False, action="store_true",help="automatically gets the version of installed tools and checks for exploits")
     parser.add_argument("-s", "--suid",dest="suidfile",default=False, action="store_true",help="find suid binary files in default bin dirs")
+    parser.add_argument("-c", "--cap",dest="capas",default=False, action="store_true",help="display capabilities of files in default bin dirs")
     parser.add_argument("-r", "--read",dest="readint",default=False, action="store_true",help="find interesting readable files")
     parser.add_argument("-w", "--write", dest="wdir",default="",help="specify the root directory to scan for writeable directories")
     options = parser.parse_args()
@@ -459,6 +503,9 @@ if __name__=="__main__":
         if options.suidfile:
             print("\n[~] Scanning for suid binaries..\n")
             check_paths_for_suid()
+        if options.capas:
+            print("\n[~] Scanning binaries for capabilities..\n")
+            check_paths_for_caps()
         if options.readint:
             print("\n[~] Scanning for interesting readable files..\n")
             check_files_reading(intfiles)

@@ -3,7 +3,7 @@
 # Valkyrie
 Support tool for local privilege escalation on linux machines.
 
-Version: 0.3
+Version: 0.4
 
 ## What is Valkyrie?
 
@@ -13,6 +13,7 @@ Valkyrie supports you finding possibilities for local privilege escalation by:
 - finding suid binaries
 - finding interesting files you can read
 - scanning for directories with write permission
+- scanning for binaries with capabilities
 
 Future features will be added.
 
@@ -39,6 +40,10 @@ Finding binaries with suid permission:
 Finding interesting files and checking whether you can read them:
 
 > python valkyrie.py -r
+
+Scanning binaries for capabilities:
+
+> python valkyrie.py -c
 
 Scanning for directories you have permission to write:
 
