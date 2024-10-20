@@ -10,7 +10,7 @@
       |  ||  |  \_____/|___|___|_______|__|\__| |___| |___|__|_______|_______|
       `._||_.'
    
-		VALKYRIE - 0.4
+		VALKYRIE - 0.5
 		
 		Written by Peter Bartels
 		
@@ -24,6 +24,11 @@
         Initial pre-release, some functionality is still missing.
         Database will be extended.
         Future functionality will be added.
+        
+        Version 0.5:
+            + bugfix in subprocess to support different versions of python
+            + new entries to exploit database
+            + new entries to readable files
         
         Version 0.4:
             + scans binaries in binary paths for capabilities
@@ -60,6 +65,10 @@ intfiles = ["/etc/passwd",
             "/etc/sudoers",
             "/etc/issue",
             "/etc/motd",
+            "/etc/shells",
+            "/etc/networks",
+            "/etc/hostname",
+            "/etc/hosts",
             "/etc/resolv.conf",
             "/etc/crontab"]
 
@@ -99,6 +108,17 @@ tooldb = '''
         "language" : "python",
         "minver" : "1.8.0",
         "maxver" : "1.9.12"
+    },
+    {
+        "program" : "sudo",
+        "name" : "sudo security bypass",
+        "description" : "sudo to 1.8.27 - Security Bypass",
+        "cve" : "2019-14287",
+        "details" : "https://nvd.nist.gov/vuln/detail/CVE-2019-14287",
+        "download" : "https://www.exploit-db.com/exploits/47502",
+        "language" : "bash",
+        "minver" : "0.0.0",
+        "maxver" : "1.8.27"
     }
 ]'''
 
@@ -319,15 +339,19 @@ def check_for_vuln(myversion,mydb):
 
 def get_installed_program_version(program_name):
     """
-
     get_installed_program_version(string) -> string
 
-    executes a given program and returns the version number of it
-
+    Executes a given program and returns the version number of it.
     """
+    if not program_name:
+        return "Error: Program name is empty"
+    
     try:
-        # Run a shell command to get the version of the program
-        version_info = subprocess.check_output([program_name, '--version'], stderr=subprocess.STDOUT, text=True)
+        # Check if the Python version is 3.7+ and use 'text' if available
+        if sys.version_info >= (3, 7):
+            version_info = subprocess.check_output([program_name, '--version'], stderr=subprocess.STDOUT, text=True)
+        else:
+            version_info = subprocess.check_output([program_name, '--version'], stderr=subprocess.STDOUT, universal_newlines=True)
         
         # Use regular expressions to extract the version number
         version_match = re.search(r'(\d+\.\d+(\.\d+)?)', version_info)
@@ -338,10 +362,13 @@ def get_installed_program_version(program_name):
             return "Version not found"
     except subprocess.CalledProcessError as e:
         # Handle the case when the program doesn't exist or --version is not supported
-        return f"Error: {e.returncode}\n{e.output}"
+        return f"Error: CalledProcessError {e.returncode}\n{e.output}"
     except FileNotFoundError:
         # Handle the case when the program is not found
         return f"Error: {program_name} not found"
+    except Exception as e:
+        # Catch all other possible exceptions
+        return f"An unexpected error occurred: {e}"
 
 
 def scan_for_local(proglist,dbtool):

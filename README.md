@@ -3,7 +3,7 @@
 # Valkyrie
 Support tool for local privilege escalation on linux machines.
 
-Version: 0.4
+Version: 0.5
 
 ## What is Valkyrie?
 
@@ -51,7 +51,7 @@ Scanning for directories you have permission to write:
 
 ## Exploit database
 
-the exploit database is currently quite limited and only contains 8 entries. the database for local exploits has 3 entries.
+the exploit database is currently quite limited and only contains 8 entries. the database for local exploits has 4 entries.
 In the next versions, the database will be extended.
 
 ## Screenshot
