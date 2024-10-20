@@ -1,4 +1,4 @@
-![logo](https://github.com/pbkangafoo/valkyrie/blob/main/logo_valk.JPG "valkyrie logo")
+![logo](https://github.com/pbkangafoo/valkyrie/blob/main/pics/logo_valk.JPG "valkyrie logo")
 
 # Valkyrie
 Support tool for local privilege escalation on linux machines.
@@ -56,8 +56,8 @@ In the next versions, the database will be extended.
 
 ## Screenshot
 
-![Screenshot](https://github.com/pbkangafoo/valkyrie/blob/main/screenshot_valk.JPG "valkyrie screenshot")
+![Screenshot](https://github.com/pbkangafoo/valkyrie/blob/main/pics/screenshot_valk.JPG "valkyrie screenshot")
 
-![Screenshot](https://github.com/pbkangafoo/valkyrie/blob/main/screenshot_valk2.JPG "valkyrie screenshot")
+![Screenshot](https://github.com/pbkangafoo/valkyrie/blob/main/pics/screenshot_valk2.JPG "valkyrie screenshot")
 
-![Screenshot](https://github.com/pbkangafoo/valkyrie/blob/main/screenshot_valk3.JPG "valkyrie screenshot")
+![Screenshot](https://github.com/pbkangafoo/valkyrie/blob/main/pics/screenshot_valk3.JPG "valkyrie screenshot")
